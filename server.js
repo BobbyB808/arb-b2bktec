@@ -16,14 +16,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Health check
   if (req.url === '/' || req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', service: 'ARB Autocare inSitu Proxy' }));
     return;
   }
 
-  // Partner portal auto-login — validates access code, returns inSitu token
   if (req.url === '/partner-login' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -32,18 +30,15 @@ const server = http.createServer((req, res) => {
       try { payload = JSON.parse(body); } catch(e) {
         res.writeHead(400); res.end(JSON.stringify({ error: 'Bad request' })); return;
       }
-
       const expectedCode = process.env.PARTNER_CODE || 'ARB2024';
       if (payload.access_code !== expectedCode) {
         res.writeHead(401); res.end(JSON.stringify({ error: 'Invalid access code' })); return;
       }
-
       const email    = process.env.INSITU_EMAIL    || '';
       const password = process.env.INSITU_PASSWORD || '';
       if (!email || !password) {
         res.writeHead(500); res.end(JSON.stringify({ error: 'Server credentials not configured' })); return;
       }
-
       const loginBody = JSON.stringify({ login: email, password: password });
       const options = {
         hostname: INSITU_HOST,
@@ -55,7 +50,6 @@ const server = http.createServer((req, res) => {
           'Content-Length': Buffer.byteLength(loginBody)
         }
       };
-
       const loginReq = https.request(options, (loginRes) => {
         let data = '';
         loginRes.on('data', chunk => { data += chunk; });
@@ -88,7 +82,6 @@ const server = http.createServer((req, res) => {
   let body = '';
   req.on('data', chunk => { body += chunk; });
   req.on('end', () => {
-
     const options = {
       hostname: INSITU_HOST,
       path: insituPath,
@@ -98,15 +91,12 @@ const server = http.createServer((req, res) => {
         'Accept': 'application/json',
       }
     };
-
     if (req.headers['authorization']) {
       options.headers['Authorization'] = req.headers['authorization'];
     }
-
     if (body) {
       options.headers['Content-Length'] = Buffer.byteLength(body);
     }
-
     const proxyReq = https.request(options, (proxyRes) => {
       let data = '';
       proxyRes.on('data', chunk => { data += chunk; });
@@ -115,13 +105,11 @@ const server = http.createServer((req, res) => {
         res.end(data);
       });
     });
-
     proxyReq.on('error', (err) => {
       console.error('Proxy error:', err.message);
       res.writeHead(502);
       res.end(JSON.stringify({ error: 'Could not reach inSitu', detail: err.message }));
     });
-
     if (body) proxyReq.write(body);
     proxyReq.end();
   });
