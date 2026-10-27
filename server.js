@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
       }
       const email    = process.env.INSITU_EMAIL    || 'rbunston@arbautocare.com';
       const password = process.env.INSITU_PASSWORD || 'Wales4ever!@';
-      const loginBody = JSON.stringify({ login: email, password: password });
+      const loginBody = JSON.stringify({ email: email, password: password });
       const options = {
         hostname: INSITU_HOST,
         path: '/api/v1/users/mobile/login',
