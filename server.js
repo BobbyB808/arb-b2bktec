@@ -41,7 +41,7 @@ const server = http.createServer((req, res) => {
       }
 
       const email = process.env.INSITU_EMAIL || 'rbunston@arbautocare.com';
-      const password = process.env.INSITU_PASSWORD || 'Wales4ever!@';
+      const password = process.env.INSITU_PASSWORD || 'Wales4ever!'; // note: no @ at the end
 
       // FIXED: inSitu mobile login expects "login", not "email"
       const loginBody = JSON.stringify({ login: email, password: password });
