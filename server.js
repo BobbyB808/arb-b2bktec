@@ -1,11 +1,9 @@
 const http = require('http');
 const https = require('https');
-
 const PORT = process.env.PORT || 3000;
 const INSITU_HOST = 'app.b2bmobilesales.com';
 
 const server = http.createServer((req, res) => {
-
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -27,16 +25,27 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       let payload;
-      try { payload = JSON.parse(body); } catch(e) {
-        res.writeHead(400); res.end(JSON.stringify({ error: 'Bad request' })); return;
+      try {
+        payload = JSON.parse(body);
+      } catch (e) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Bad request' }));
+        return;
       }
+
       const expectedCode = process.env.PARTNER_CODE || 'autoglym';
       if (payload.access_code !== expectedCode) {
-        res.writeHead(401); res.end(JSON.stringify({ error: 'Invalid access code' })); return;
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: 'Invalid access code' }));
+        return;
       }
-      const email    = process.env.INSITU_EMAIL    || 'rbunston@arbautocare.com';
+
+      const email = process.env.INSITU_EMAIL || 'rbunston@arbautocare.com';
       const password = process.env.INSITU_PASSWORD || 'Wales4ever!@';
-      const loginBody = JSON.stringify({ email: email, password: password });
+
+      // FIXED: inSitu mobile login expects "login", not "email"
+      const loginBody = JSON.stringify({ login: email, password: password });
+
       const options = {
         hostname: INSITU_HOST,
         path: '/api/v1/users/mobile/login',
@@ -47,6 +56,7 @@ const server = http.createServer((req, res) => {
           'Content-Length': Buffer.byteLength(loginBody)
         }
       };
+
       const loginReq = https.request(options, (loginRes) => {
         let data = '';
         loginRes.on('data', chunk => { data += chunk; });
@@ -58,9 +68,12 @@ const server = http.createServer((req, res) => {
           res.end(data);
         });
       });
+
       loginReq.on('error', () => {
-        res.writeHead(502); res.end(JSON.stringify({ error: 'Could not reach inSitu' }));
+        res.writeHead(502);
+        res.end(JSON.stringify({ error: 'Could not reach inSitu' }));
       });
+
       loginReq.write(loginBody);
       loginReq.end();
     });
@@ -88,12 +101,15 @@ const server = http.createServer((req, res) => {
         'Accept': 'application/json',
       }
     };
+
     if (req.headers['authorization']) {
       options.headers['Authorization'] = req.headers['authorization'];
     }
+
     if (body) {
       options.headers['Content-Length'] = Buffer.byteLength(body);
     }
+
     const proxyReq = https.request(options, (proxyRes) => {
       let data = '';
       proxyRes.on('data', chunk => { data += chunk; });
@@ -102,11 +118,13 @@ const server = http.createServer((req, res) => {
         res.end(data);
       });
     });
+
     proxyReq.on('error', (err) => {
       console.error('Proxy error:', err.message);
       res.writeHead(502);
       res.end(JSON.stringify({ error: 'Could not reach inSitu', detail: err.message }));
     });
+
     if (body) proxyReq.write(body);
     proxyReq.end();
   });
