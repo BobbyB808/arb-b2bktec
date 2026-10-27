@@ -30,7 +30,7 @@ const server = http.createServer((req, res) => {
       try { payload = JSON.parse(body); } catch(e) {
         res.writeHead(400); res.end(JSON.stringify({ error: 'Bad request' })); return;
       }
-      const expectedCode = process.env.PARTNER_CODE || 'ARB2024';
+      const expectedCode = process.env.PARTNER_CODE || 'autoglym';
       if (payload.access_code !== expectedCode) {
         res.writeHead(401); res.end(JSON.stringify({ error: 'Invalid access code' })); return;
       }
