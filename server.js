@@ -16,10 +16,63 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Health check — Railway uses this to confirm the app is alive
+  // Health check
   if (req.url === '/' || req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', service: 'ARB Autocare inSitu Proxy' }));
+    return;
+  }
+
+  // Partner portal auto-login — validates access code, returns inSitu token
+  if (req.url === '/partner-login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      let payload;
+      try { payload = JSON.parse(body); } catch(e) {
+        res.writeHead(400); res.end(JSON.stringify({ error: 'Bad request' })); return;
+      }
+
+      const expectedCode = process.env.PARTNER_CODE || 'ARB2024';
+      if (payload.access_code !== expectedCode) {
+        res.writeHead(401); res.end(JSON.stringify({ error: 'Invalid access code' })); return;
+      }
+
+      const email    = process.env.INSITU_EMAIL    || '';
+      const password = process.env.INSITU_PASSWORD || '';
+      if (!email || !password) {
+        res.writeHead(500); res.end(JSON.stringify({ error: 'Server credentials not configured' })); return;
+      }
+
+      const loginBody = JSON.stringify({ login: email, password: password });
+      const options = {
+        hostname: INSITU_HOST,
+        path: '/api/v1/users/mobile/login',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Content-Length': Buffer.byteLength(loginBody)
+        }
+      };
+
+      const loginReq = https.request(options, (loginRes) => {
+        let data = '';
+        loginRes.on('data', chunk => { data += chunk; });
+        loginRes.on('end', () => {
+          res.writeHead(loginRes.statusCode, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(data);
+        });
+      });
+      loginReq.on('error', () => {
+        res.writeHead(502); res.end(JSON.stringify({ error: 'Could not reach inSitu' }));
+      });
+      loginReq.write(loginBody);
+      loginReq.end();
+    });
     return;
   }
 
@@ -29,7 +82,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // /api/v1/invoices → /api/v1/invoices (forward path as-is to inSitu)
   const insituPath = req.url.replace(/^\/api/, '/api');
   console.log(`[${new Date().toISOString()}] ${req.method} ${insituPath}`);
 
