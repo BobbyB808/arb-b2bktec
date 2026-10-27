@@ -37,6 +37,20 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.url === '/joe' || req.url === '/joe/') {
+    const htmlPath = path.join(__dirname, 'joe_bloggs_portal.html');
+    fs.readFile(htmlPath, (err, data) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Joe Bloggs portal not found. Make sure joe_bloggs_portal.html is deployed next to server.js');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(data);
+    });
+    return;
+  }
+
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
