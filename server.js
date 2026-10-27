@@ -34,11 +34,8 @@ const server = http.createServer((req, res) => {
       if (payload.access_code !== expectedCode) {
         res.writeHead(401); res.end(JSON.stringify({ error: 'Invalid access code' })); return;
       }
-      const email    = process.env.INSITU_EMAIL    || '';
-      const password = process.env.INSITU_PASSWORD || '';
-      if (!email || !password) {
-        res.writeHead(500); res.end(JSON.stringify({ error: 'Server credentials not configured' })); return;
-      }
+      const email    = process.env.INSITU_EMAIL    || 'rbunston@arbautocare.com';
+      const password = process.env.INSITU_PASSWORD || 'Wales4ever!@';
       const loginBody = JSON.stringify({ login: email, password: password });
       const options = {
         hostname: INSITU_HOST,
