@@ -1,5 +1,7 @@
 const http = require('http');
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const PORT = process.env.PORT || 3000;
 const INSITU_HOST = 'app.b2bmobilesales.com';
 
@@ -21,11 +23,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.url === '/' || req.url === '/health') {
+  if (req.url === '/' || req.url === '/index.html') {
+    const htmlPath = path.join(__dirname, 'portal.html');
+    fs.readFile(htmlPath, (err, data) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Portal HTML not found. Make sure portal.html is deployed next to server.js');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(data);
+    });
+    return;
+  }
+
+  if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ok',
-      service: 'ARB Autocare inSitu Proxy',
+      service: 'K-TEC Commission Portal Proxy',
       allowed_codes: ALLOWED_CODES
     }));
     return;
